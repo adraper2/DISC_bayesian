@@ -254,6 +254,10 @@ names(mod.inputs) = paste("run",run.idx$id,sep="")
 save(mod.inputs,file="InputsCVchopper.rda")
 rm(mod.inputs) # to save space
 
+#try writing list to output file
+sink("lake_inputs.txt")
+print(mod.inputs)
+sink()
 
 
 # STEP 6: Actually run the cross-validation, works for multiple lakes
@@ -294,18 +298,18 @@ for (i in 1:length(lakes)){
   load(lake.inputs)
   
   #### THIS IS WHERE I LEFT OFF #### (need to figre out parallel computing to make it run faster)
-  out <- for(i in 1:idx) run.cv(mod.inputs[[i]]) # only way I could attach x properly so it could read variables
+  #out <- for(i in 1:idx) run.cv(mod.inputs[[i]]) # only way I could attach x properly so it could read variables
   
-  #source("RunAdaptMCMC_CV.R")
-  
-  # track.file = paste("CV",lakes[i],".txt",sep="")
-  # 
-  # sfInit(parallel=T,cpus=2,slaveOutfile=track.file)
-  # sfClusterSetupRNG()
-  # 
-  # out = sfClusterApplyLB(mod.inputs,run.cv)
-  # 
-  # sfStop()
+  source("RunAdaptMCMC_CV.R")
+
+  track.file = paste("CV",lakes[i],".txt",sep="")
+
+  sfInit(parallel=T,cpus=19,slaveOutfile=track.file)
+  sfClusterSetupRNG()
+
+  out = sfClusterApplyLB(mod.inputs,run.cv)
+
+  sfStop()
 
   out.file = paste("OutCV",lakes[i],".rda",sep="")
   
