@@ -1,1 +1,8 @@
 chopperCHAR.csv
+BigWoodsLakes/bigwoods.xls
+BigWoodsLakes/outputBW/*
+BigWoodsLakes/outputBW
+BigWoodsLakes/cv_results_crystal.rda
+AlaskanLakes/output/*
+AlaskanLakes/output
+AlaskanLakes/cv_results_chopper.rda

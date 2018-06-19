@@ -1,0 +1,10 @@
+universe = vanilla
+executable = runCVbatch.sh
+transfer_input_files = runCVbatch.R, InputsCVchopper.rda
+arguments = chopper $(PROCESS)
+output = /afs/crc.nd.edu/user/a/adraper2/condor/output/cv_run.out.$(PROCESS)
+error = /afs/crc.nd.edu/user/a/adraper2/condor/output/run.error.$(PROCESS)
+should_transfer_files = yes
+when_to_transfer_output = on_exit
+log = app.logfile
+queue 25
