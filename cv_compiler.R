@@ -4,8 +4,10 @@
 # this file takes the output .rda files from the HTCondor system process and produces one final .rda file called 
 # cv_results_{lake name}.rda
 
+#change the directory to your locally copied output file from condor
 setwd('~/Documents/Junior_Year/DISC_REU/DISC_bayesian_model/BigWoodsLakes/outputBW')
 
+# make sure to adjust your parameters to match your HTCondor job output
 proc <- 25 # number of processes
 inp <- 3 # number of CVs run per process
 lake.name <- "crystal"
@@ -19,7 +21,8 @@ for(x in 0 : (proc - 1)){
   posit <- count
   for (y in 1 : length(results)){
     if (length(results[[y]]) != 0){
-      cv.results[[y]] <- results[[y]]
+      cv.results[[count]] <- results[[y]]
+      count <- count + 1
     }
   }
   rm(results) # to make sure we are grabbing the new results input

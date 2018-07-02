@@ -32,6 +32,8 @@ char.dat$sed.rate <- with(curr.lake, Flux / Count) # NOTE: do not have age of se
 char.dat$influx <- curr.lake$Flux
 char.dat$count <- curr.lake$Count
 
+if(is.nan(char.dat[1,2])) char.dat[1,2] <- 0 # catch the count = 0 result being NaN for sed.rate
+
 
 qplot(age,count,data=char.dat)  + geom_smooth(method="loess", span=0.08) + theme_bw()
 
@@ -53,6 +55,8 @@ knots = as.numeric(CRbasis[[1]]$xp)
 S.scale = CRbasis[[1]]$S.scale
 
 TT <- 1/char.dat$sed.rate # sets offset (inverse of sedimentation rate from STEP 1)
+
+TT[is.infinite(TT)==TRUE] <- 0 # catch the Inf result incase 0 is in the denominator
 
 plot(char.dat$age, TT) # YOOOOO what the heck??? duuuuudee
 
@@ -250,7 +254,7 @@ for (j in 1:q){ # for each chain
 
 names(mod.inputs) = paste("run",run.idx$id,sep="")
 save(mod.inputs,file="InputsCVcrystal.rda")
-#rm(mod.inputs) # to save space
+rm(mod.inputs) # to save space
 
 
 
