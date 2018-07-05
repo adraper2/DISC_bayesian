@@ -1,0 +1,10 @@
+universe = vanilla
+executable = runMCMCbatch.sh
+transfer_input_files = runMCMCbatch.R, InputsMCRchopper.rda
+arguments = chopper $(PROCESS)
+output = /afs/crc.nd.edu/user/a/adraper2/condor/outputMCMC/mcmc_run.out.$(PROCESS)
+error = /afs/crc.nd.edu/user/a/adraper2/condor/outputMCMC/run.error.$(PROCESS)
+should_transfer_files = yes
+when_to_transfer_output = on_exit
+log = /afs/crc.nd.edu/user/a/adraper2/condor/outputMCMC/app.logfile
+queue 3
