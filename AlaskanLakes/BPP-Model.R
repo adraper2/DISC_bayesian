@@ -13,6 +13,7 @@ library(zoo)
 library(Matrix)
 library(stringr)
 library(rlecuyer)
+library(cowplot)
 # uncomment if you use Malcolm's snowfall approach
 #library(snowfall)
 #library(snow)
@@ -252,7 +253,7 @@ for (j in 1:q){ # for each chain
 
 names(mod.inputs) = paste("run",run.idx$id,sep="")
 
-save(mod.inputs,file="InputsCVchopper.rda")
+#save(mod.inputs,file="InputsCVchopper.rda")
 rm(mod.inputs) # to save space
 
 
@@ -378,12 +379,12 @@ post.var.y = t(sapply(y.sim,function(x)apply(do.call(rbind,x),2,var)))
 
 # Plot posterior mean counts for holdout set (commented out here for simplicity)
 
-x11()
-par(ask=T)
-for (i in 1:G){
-plot(char.dat$age,char.dat$count,"l")
-points(char.dat$age[ho.idx],post.mean.y[i,],pch=20,col="red",cex=1.2)
-}
+#x11()
+#par(ask=T)
+#for (i in 1:G){
+#plot(char.dat$age,char.dat$count,"l")
+#points(char.dat$age[ho.idx],post.mean.y[i,],pch=20,col="red",cex=1.2)
+#}
 
 post.summ = run.idx[1:G,c("id","sig2.b","sig2.f")]
 
@@ -400,6 +401,7 @@ post.summ
 # STEP 8: Setup inputs for final run of model using optimal penalties
 
 # Model inputs
+X = CRbasis[[1]]$X # this may be incorrect
 y = char.dat$count
 TT = char.dat$offset
 age = char.dat$age
@@ -437,4 +439,103 @@ for (i in 1:q){
 save(mod.inputs,file="InputsMCRchopper.rda")
 
 
+
+
+###### Step 9: PROCESS FINAL MODEL ######
+load("~/Documents/Junior_Year/DISC_REU/CharcoalModelFiles/OutMCRchopper.rda")
+
+q = length(out)
+
+n.samp = nrow(out[[1]]$p.theta.samples)
+n.burn = 50000
+n.step = 10
+save.idx = seq(n.burn+1,n.samp,n.step)
+n.save = length(save.idx)
+
+b0.b.sim = mcmc.list(lapply(out,function(x)mcmc(x$p.theta.samples[save.idx,b0.b.idx])))
+beta.b.sim = mcmc.list(lapply(out,function(x)mcmc(x$p.theta.samples[save.idx,beta.b.idx])))
+b0.f.sim = mcmc.list(lapply(out,function(x)mcmc(x$p.theta.samples[save.idx,b0.f.idx])))
+beta.f.sim = mcmc.list(lapply(out,function(x)mcmc(x$p.theta.samples[save.idx,beta.f.idx])))
+
+X = CRbasis[[1]]$X
+
+lam.Tb.sim = mcmc.list(lapply(1:q,function(j)
+  mcmc(t(sapply(1:n.save,function(i,b0=b0.b.sim[[j]],b=beta.b.sim[[j]],x=X,off=TT)
+    exp(b0[i] + x%*%b[i,])*off)))))
+
+lam.Tf.sim = mcmc.list(lapply(1:q,function(j)
+  mcmc(t(sapply(1:n.save,function(i,b0=b0.f.sim[[j]],b=beta.f.sim[[j]],x=X,off=TT)
+    exp(b0[i] + x%*%b[i,])*off)))))
+
+lam.T.sim = mcmc.list(lapply(1:q,function(j)
+  mcmc(t(sapply(1:n.save,function(i,lb=lam.Tb.sim[[j]],lf=lam.Tf.sim[[j]])
+    lb[i,]+lf[i,])))))
+
+pT.sim = mcmc.list(lapply(1:q,function(j)
+  mcmc(t(sapply(1:n.save,function(i,lb=lam.Tb.sim[[j]],lf=lam.Tf.sim[[j]])
+    lf[i,]/(lb[i,]+lf[i,]))))))
+
+# Check convergence of probability of fire parameters
+# (commented out for simplicity)
+
+#x11(width=5,height=8)
+#plot(pT.sim,ask=T)
+# 
+#gelman.diag(pT.sim)
+
+# Fitted charcoal counts subplot
+summ.lam.T = summary(lam.T.sim)
+char.dat$mu.post.mean = summ.lam.T$statistics[,"Mean"]
+p1 = ggplot(aes(x=age,y=count), data=char.dat) +
+  geom_point(size=1.5,shape=1) +
+  geom_line(aes(x=age,y=mu.post.mean,color="Fitted Charcoal Count"),size=1) +
+  scale_color_manual(values=c("blue")) +
+  ylab("Count") + scale_x_reverse() + xlab("") +
+  theme_bw() + theme(legend.title=element_blank(),
+                     legend.position=c(0.15,0.8),
+                     panel.grid=element_blank())
+
+# Background/foreground intensity subplot
+lam.b.sim = lam.f.sim = array(NA,dim=c(q*n.save,n))
+
+for (j in 1:q){
+  
+  lam.b.sim[(1:n.save)+n.save*(j-1),] = 
+    t(sapply(1:n.save,function(i,b0=b0.b.sim[[j]],x=X,B=beta.b.sim[[j]])
+      exp(b0[i] + x%*%B[i,])))
+  
+  lam.f.sim[(1:n.save)+n.save*(j-1),] = 
+    t(sapply(1:n.save,function(i,b0=b0.f.sim[[j]],x=X,B=beta.f.sim[[j]])
+      exp(b0[i] + x%*%B[i,])))
+  
+}
+
+char.dat$lam.b.post.mean = apply(lam.b.sim,2,mean)
+char.dat$lam.f.post.mean = apply(lam.f.sim,2,mean)
+p2 = ggplot(aes(x=age,y=lam.b.post.mean), data=char.dat) +
+  geom_line(aes(color="background"),size=1,alpha=I(0.75)) +
+  geom_line(aes(x=age,y=lam.f.post.mean,color="fire"),size=1,alpha=I(0.75)) +
+  scale_color_manual(values=c("green","red")) +
+  ylab("Intensity") + scale_x_reverse() + xlab("") +
+  theme_bw() + theme(legend.title=element_blank(),
+                     legend.position=c(0.1,0.7),
+                     panel.grid=element_blank())
+
+# Probability of fire subplot
+summ.pT = summary(pT.sim)
+char.dat$pf = summ.pT$statistics[,"Mean"]
+char.dat$pf.lower = summ.pT$quantiles[,"2.5%"]
+char.dat$pf.upper = summ.pT$quantiles[,"97.5%"]
+p4 = ggplot(aes(x=age,y=pf),data=char.dat) +
+  geom_ribbon(aes(x=age,ymin=pf.lower,ymax=pf.upper),fill="grey") +
+  geom_line(size=0.8) +
+  # geom_line(aes(y=pT),color="purple") +
+  #   geom_point() +
+  geom_hline(aes(yintercept=0.9),color="red") +
+  ylab("Prob(Fire)") + scale_x_reverse() + xlab("Time (YBP)") +
+  theme_bw() +
+  theme(panel.grid=element_blank())
+
+
+print(plot_grid(p1,p2,p4,nrow=3,align="v"))
 

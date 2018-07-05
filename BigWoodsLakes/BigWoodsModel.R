@@ -401,6 +401,7 @@ post.summ
 # STEP 8: Setup inputs for final run of model using optimal penalties
 
 # Model inputs
+X = CRbasis[[1]]$X
 y = char.dat$count
 TT = char.dat$offset
 age = char.dat$age
