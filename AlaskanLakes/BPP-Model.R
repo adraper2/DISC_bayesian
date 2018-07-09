@@ -436,26 +436,27 @@ for (i in 1:q){
   
 }
 
-save(mod.inputs,file="InputsMCRchopper.rda")
+#save(mod.inputs,file="InputsMCRchopper.rda")
 
 
 
 
 ###### Step 9: PROCESS FINAL MODEL ######
-load("~/Documents/Junior_Year/DISC_REU/CharcoalModelFiles/OutMCRchopper.rda")
+load("~/Documents/Junior_Year/DISC_REU/DISC_bayesian_model/AlaskanLakes/mcmc_results_chopper.rda")
 
-q = length(out)
+q = length(mcmc.results)
 
-n.samp = nrow(out[[1]]$p.theta.samples)
-n.burn = 50000
+n.samp = nrow(mcmc.results[[1]]$p.theta.samples)
+n.burn = n.samp * .25
 n.step = 10
-save.idx = seq(n.burn+1,n.samp,n.step)
+save.idx = seq((n.burn+1): n.samp) + n.burn # weird glitch in seq() function...
+save.idx <- save.idx[which(save.idx %% 10 == 1)]
 n.save = length(save.idx)
 
-b0.b.sim = mcmc.list(lapply(out,function(x)mcmc(x$p.theta.samples[save.idx,b0.b.idx])))
-beta.b.sim = mcmc.list(lapply(out,function(x)mcmc(x$p.theta.samples[save.idx,beta.b.idx])))
-b0.f.sim = mcmc.list(lapply(out,function(x)mcmc(x$p.theta.samples[save.idx,b0.f.idx])))
-beta.f.sim = mcmc.list(lapply(out,function(x)mcmc(x$p.theta.samples[save.idx,beta.f.idx])))
+b0.b.sim = mcmc.list(lapply(mcmc.results,function(x)mcmc(x$p.theta.samples[save.idx,b0.b.idx])))
+beta.b.sim = mcmc.list(lapply(mcmc.results,function(x)mcmc(x$p.theta.samples[save.idx,beta.b.idx])))
+b0.f.sim = mcmc.list(lapply(mcmc.results,function(x)mcmc(x$p.theta.samples[save.idx,b0.f.idx])))
+beta.f.sim = mcmc.list(lapply(mcmc.results,function(x)mcmc(x$p.theta.samples[save.idx,beta.f.idx])))
 
 X = CRbasis[[1]]$X
 
@@ -476,7 +477,7 @@ pT.sim = mcmc.list(lapply(1:q,function(j)
     lf[i,]/(lb[i,]+lf[i,]))))))
 
 # Check convergence of probability of fire parameters
-# (commented out for simplicity)
+# (commented mcmc.results for simplicity)
 
 #x11(width=5,height=8)
 #plot(pT.sim,ask=T)

@@ -6,3 +6,7 @@ BigWoodsLakes/cv_results_crystal.rda
 AlaskanLakes/output/*
 AlaskanLakes/output
 AlaskanLakes/cv_results_chopper.rda
+AlaskanLakes/MCRrda
+AlaskanLakes/MCRrda/*
+BigWoodsLakes/MCRrda
+BigWoodsLakes/MCRrda/*

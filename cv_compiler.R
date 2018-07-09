@@ -27,5 +27,5 @@ for(x in 0 : (proc - 1)){
   }
   rm(results) # to make sure we are grabbing the new results input
 }
-setwd('~/Documents/Junior_Year/DISC_REU/DISC_bayesian_model/')
+setwd('~/Documents/Junior_Year/DISC_REU/DISC_bayesian_model/BigWoodsLakes/')
 save(cv.results,file=paste('cv_results_',lake.name,'.rda', sep=""))
