@@ -15,6 +15,7 @@ library(stringr)
 library(snow)
 library(rlecuyer)
 library(snowfall)
+library(cowplot)
 library(readxl)
 
 
@@ -44,7 +45,7 @@ char.dat$age.c = with(char.dat,age-min(age))
 char.dat$age.s = with(char.dat,age.c/max(age.c))
 
 n = nrow(char.dat)
-n.knots = 31 # this variable will change for each model based on time interval 
+n.knots = 51 # this variable will change for each model based on time interval 
 # (could only use 30 because only had 94 points)
 
 # note: smoothCon is part of the mgcv package for constructing the smooth terms in a GAM model
@@ -153,8 +154,8 @@ q = 3
 
 # Define background and foreground penalties (based on the smoothing scale of the splines)
 n.pen = 5
-sig2.b = seq(100,500,length.out=n.pen)/S.scale
-sig2.f = seq(1e8,5e8,length.out=n.pen)/S.scale
+sig2.b = seq(1e-08,1e-05,length.out=n.pen)/S.scale
+sig2.f = seq(0.01,1,length.out=n.pen)/S.scale
 pen.params = expand.grid(sig2.b=sig2.b,sig2.f=sig2.f)
 G = nrow(pen.params)
 
@@ -254,7 +255,7 @@ for (j in 1:q){ # for each chain
 }
 
 names(mod.inputs) = paste("run",run.idx$id,sep="")
-#save(mod.inputs,file="InputsCVcrystal.rda")
+#save(mod.inputs,file=paste("InputsCVcrystal",n.knots,".rda", sep=""))
 rm(mod.inputs) # to save space
 
 
@@ -443,6 +444,8 @@ for (i in 1:q){
 
 
 
+### GO RUN THE MCMC JOB ON HTCONDOR AND THEN LOAD THE RESULTS ###
+
 
 ###### Step 9: PROCESS FINAL MODEL ######
 load("~/Documents/Junior_Year/DISC_REU/DISC_bayesian_model/BigWoodsLakes/mcmc_results_crystal.rda")
@@ -496,7 +499,7 @@ p1 = ggplot(aes(x=age,y=count), data=char.dat) +
   scale_color_manual(values=c("blue")) +
   ylab("Count") + scale_x_reverse() + xlab("") +
   theme_bw() + theme(legend.title=element_blank(),
-                     legend.position=c(0.15,0.8),
+                     legend.position=c(0.85,0.8),
                      panel.grid=element_blank())
 
 # Background/foreground intensity subplot
@@ -522,7 +525,7 @@ p2 = ggplot(aes(x=age,y=lam.b.post.mean), data=char.dat) +
   scale_color_manual(values=c("green","red")) +
   ylab("Intensity") + scale_x_reverse() + xlab("") +
   theme_bw() + theme(legend.title=element_blank(),
-                     legend.position=c(0.1,0.7),
+                     legend.position=c(.9,0.7),
                      panel.grid=element_blank())
 
 # Probability of fire subplot
