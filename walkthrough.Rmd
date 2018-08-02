@@ -1,30 +1,106 @@
 ---
-title: "Charcoal Point Process Model Walkthrough (Midwest Lakes)"
+title: "Application of the Charcoal Point Process Model for the Big Woods Lakes Dataset"
 author: "Aidan Draper and Luke Onken"
 date: "6/22/2018"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
+#Ignore this line, it is for setup
 knitr::opts_chunk$set(echo = TRUE)
+
+
+# import libraries
+library(spBayes)
+library(ggplot2)
+library(coda)
+library(gridExtra)
+library(mgcv)
+library(zoo)
+library(Matrix)
+library(stringr)
+library(snow)
+library(rlecuyer)
+library(snowfall)
+library(cowplot)
+library(readxl)
 ```
 
 ## Introduction
 
 This walkthrough discusses the process for recreating a Bayesian point process model built by Malcom Itter, a PhD candidate at Michigan State University. Malcolm, with the help of expert paleocologists, developed a theory that charcoal influx in lakes could be seperated into a foreground and background count to differentiate local and regional fires.  Using this model, local forest fires for the past centuries could be predicted to help model the Earth for future predictions about climate change and the shift between savannahs and forest in the midwest forests.
 
+The purpose of our work was to run Malcolm's model on a new dataset for a different type of forests in the midwest. This was done in order to test the model's effectiveness in a different region other than Alaska, which a specific type of forests. If accurate, this analysis provides support for Malcolm's model on future applications in different forests around the United States.
+
 To begin, we suggest cloning this repository to your local machine. In addition, this model requires access to some sort of cluster of machines. In this case, we use the University of Notre Dame's HTCondor access to run two steps in our walkthrough. If you do not have access to a cluster, your program may take 24 hours or more to run a single lake model. If that is the case though, run the code sections we distribute in our job array to the cluster individually.
 
-```{r cars, echo= FALSE}
-summary(cars)
+
+#### Step 1: Initial Setup
+
+For starters, set your working directory for this project. We suggest using either the BigWoodsModel.R or the BPP-model.R files in the Big Woods Lakes or Alaskan Lakes files. Be sure you are importing the correct datasets initially. In this specific case, we will be using the Big Woods Lakes as this is the adaptation we made from Malcolm's code. After your directory is setup, import the file and setup a new dataframe to run your model with. We will be slightly manipulating our covariates for the model.
+
+```{r step1, echo=TRUE, eval=FALSE}
+#STEP 1: Setup and Data Manipulation
+setwd("~/path/to/your/project/folder")
+
+# specify sheet number
+curr.lake <- read_excel("bigwoods.xls", sheet = 5, col_names = TRUE)[-1,] # ommitted first row for now because charcoal count was 0
+
+char.dat <- data.frame(age=rep(NA,length(curr.lake$Date)))
+
+# define variables from lake
+char.dat$age <- with(curr.lake, round(Date) - 2018) # calculate YBP
+char.dat$sed.rate <- with(curr.lake, Flux / Count) # NOTE: do not have age of sediment core so we left it fixed
+char.dat$influx <- curr.lake$Flux
+char.dat$count <- curr.lake$Count
+char.dat$offset <- 1/char.dat$sed.rate
+
+qplot(age,count,data=char.dat)  + geom_smooth(method="loess", span=0.08) + theme_bw()
+
 ```
 
-## Including Plots
+```{r step1run, echo=TRUE, eval=TRUE}
+# EDIT THIS CODE HERE TO ACTUALLY RUN THE PROGRAM OR SET EVAL TO FALSE
+#STEP 1: Setup and Data Manipulation
+setwd("~/R/DISC_bayesian/BigWoodsLakes/")
 
-You can also embed plots, for example:
+# specify sheet number
+curr.lake <- read_excel("bigwoods.xls", sheet = 5, col_names = TRUE)[-1,] # ommitted first row for now because charcoal count was 0
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+char.dat <- data.frame(age=rep(NA,length(curr.lake$Date)))
+
+# define variables from lake
+char.dat$age <- with(curr.lake, round(Date) - 2018) # calculate YBP
+char.dat$sed.rate <- with(curr.lake, Flux / Count) # NOTE: do not have age of sediment core so we left it fixed
+char.dat$influx <- curr.lake$Flux
+char.dat$count <- curr.lake$Count
+char.dat$offset <- 1/char.dat$sed.rate
+
+qplot(age,count,data=char.dat)  + geom_smooth(method="loess", span=0.08) + theme_bw()
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#### Step 2: Approximate Foreground and Background Intensities
+Next, we 
+```{r step2, echo=TRUE, eval=FALSE}
+char.dat$age.c = with(char.dat,age-min(age))
+char.dat$age.s = with(char.dat,age.c/max(age.c))
+
+n = nrow(char.dat)
+n.knots = 51 # this variable will change for each model based on time interval 
+# (could only use 30 because only had 94 points)
+
+# note: smoothCon is part of the mgcv package for constructing the smooth terms in a GAM model
+CRbasis = smoothCon(s(age.s,k=n.knots,bs="cr"),data=char.dat,knots=NULL,absorb.cons=TRUE,
+                    scale.penalty=TRUE)
+Sb = CRbasis[[1]]$S[[1]]
+X = CRbasis[[1]]$X
+knots = as.numeric(CRbasis[[1]]$xp)
+S.scale = CRbasis[[1]]$S.scale
+
+TT <- char.dat$offset # sets offset (inverse of sedimentation rate from STEP 1)
+
+#plot(char.dat$age, TT) # this is a super weird detail about our offset variable. I have no intuition into its potential effect on our model though
+
+```
+
