@@ -9,13 +9,13 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Introduction
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+This walkthrough discusses the process for recreating a Bayesian point process model built by Malcom Itter, a PhD candidate at Michigan State University. Malcolm, with the help of expert paleocologists, developed a theory that charcoal influx in lakes could be seperated into a foreground and background count to differentiate local and regional fires.  Using this model, local forest fires for the past centuries could be predicted to help model the Earth for future predictions about climate change and the shift between savannahs and forest in the midwest forests.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+To begin, we suggest cloning this repository to your local machine. In addition, this model requires access to some sort of cluster of machines. In this case, we use the University of Notre Dame's HTCondor access to run two steps in our walkthrough. If you do not have access to a cluster, your program may take 24 hours or more to run a single lake model. If that is the case though, run the code sections we distribute in our job array to the cluster individually.
 
-```{r cars}
+```{r cars, echo= FALSE}
 summary(cars)
 ```
 
